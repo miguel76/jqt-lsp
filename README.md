@@ -22,6 +22,22 @@ It can currently do:
 
 ## Install
 
+In some cases the installation is handled by the editor, IDE etc. If not you can use one of the methods below.
+
+### Homebrew
+
+```
+brew install jq-lsp
+```
+
+### Release binaries
+
+Download and install binary from [releases page](ttps://github.com/wader/jq-lsp/releases).
+
+### Build from source
+
+Build requires that [golang](https://go.dev) is installed.
+
 ```sh
 # install latest release
 go install github.com/wader/jq-lsp@latest
