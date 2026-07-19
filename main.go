@@ -20,7 +20,7 @@ func main() {
 		}
 	}
 
-	if err := lsp.Run(lsp.Env{
+	exitCode, err := lsp.Run(lsp.Env{
 		Version:  version,
 		ReadFile: os.ReadFile,
 		Stdin:    os.Stdin,
@@ -28,8 +28,10 @@ func main() {
 		Stderr:   os.Stderr,
 		Args:     os.Args,
 		Environ:  os.Environ(),
-	}); err != nil {
+	})
+
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
 	}
+	os.Exit(exitCode)
 }
