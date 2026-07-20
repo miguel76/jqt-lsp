@@ -95,7 +95,7 @@ func TestLSP(t *testing.T) {
 
 			actualStdout := &bytes.Buffer{}
 			actualStderr := &bytes.Buffer{}
-			err = lsp.Run(lsp.Env{
+			_, err = lsp.Run(lsp.Env{
 				Version:  "test-version",
 				ReadFile: readFile,
 				Stdin:    stdinBuf,

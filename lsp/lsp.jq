@@ -879,24 +879,30 @@ def jsonrpc_call($method; $params):
 
 def main:
   ( . as {$config}
-  | .args as [$arg0,$opt,$arg]
+  | .args as [$arg0, $opt, $arg]
   | if $opt == "--help" then
-      ( "jq-lsp - jq language server\n"
-      + "For details see https://github.com/wader/jq-lsp\n"
-      + "\n"
-      + "Usage: \($arg0) [OPTIONS]\n"
-      + "  --help       Show help\n"
-      + "  --version    Show version (\($config.version))\n"
-      + "  --eval EXPR  Evaluate expression\n"
-      | stdout
+      ( ( "jq-lsp - jq language server\n"
+        + "For details see https://github.com/wader/jq-lsp\n"
+        + "\n"
+        + "Usage: \($arg0) [OPTIONS]\n"
+        + "  --help       Show help\n"
+        + "  --version    Show version (\($config.version))\n"
+        + "  --eval EXPR  Evaluate expression\n"
+        + "  --stdio      Ignored (is default)\n"
+        | stdout
+        )
+      , halt
       )
     elif $opt == "--version" then
-      "\($config.name) \($config.version)\n" | stdout
+      "\($config.name) \($config.version)\n" | stdout | halt
     elif $opt == "--eval" then
-      eval($arg)
+      ( eval($arg)
+      , halt
+      )
+    elif $opt == "--stdio" then
+      . # ignored
     elif $opt != null then
-      ("Unknown option \($opt)\n") | stderr
-    else
-      loop(serve)
+      ("Unknown option \($opt)\n") | stderr | halt
     end
+  | loop(serve)
   );

@@ -106,7 +106,7 @@ func utf16LineLens(c any) any {
 	return lineLens
 }
 
-func Run(env Env) error {
+func Run(env Env) (int, error) {
 	i := &interp{
 		env: env,
 	}
@@ -126,7 +126,7 @@ func Run(env Env) error {
 
 	gc, err := i.Compile("main")
 	if err != nil {
-		return err
+		return 1, err
 	}
 
 	iter := gc.RunWithContext(context.Background(), state)
@@ -137,14 +137,20 @@ func Run(env Env) error {
 		}
 
 		switch v := v.(type) {
+		case *gojq.HaltError:
+			if v := v.Value(); v != nil {
+				jd := json.NewEncoder(env.Stderr)
+				_ = jd.Encode(v)
+			}
+			return v.ExitCode(), nil
 		case error:
 			if ve, ok := v.(gojq.ValueError); ok {
 				if vev, ok := ve.Value().(string); ok && vev == "EOF" {
 					// TODO: currently assume any EOF error means normal exit
-					return nil
+					return 0, nil
 				}
 			}
-			return v
+			return 1, v
 		case [2]any:
 			fmt.Fprintln(env.Stderr, v[:]...)
 		default:
@@ -154,7 +160,7 @@ func Run(env Env) error {
 		}
 	}
 
-	return nil
+	return 0, nil
 }
 
 func (i *interp) Compile(src string) (*gojq.Code, error) {
