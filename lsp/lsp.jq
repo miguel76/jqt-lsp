@@ -157,8 +157,6 @@ def uri_resolve($rel):
   | join("")
   );
 
-def file_uri_to_local: ltrimstr("file://");
-
 def func_def_signature:
   ( [ .name.str
     , if (.args | length) > 0 then
