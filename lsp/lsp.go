@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/url"
+	"runtime"
 	"strings"
 	"unicode/utf16"
 	"unicode/utf8"
@@ -198,6 +200,7 @@ func (i *interp) Compile(src string) (*gojq.Code, error) {
 	}))
 
 	compilerOpts = append(compilerOpts, gojq.WithFunction("readfile", 0, 0, i.readFile))
+	compilerOpts = append(compilerOpts, gojq.WithFunction("file_uri_to_local", 0, 0, fileURIToLocal))
 	compilerOpts = append(compilerOpts, gojq.WithFunction("stdin", 0, 1, i.stdin))
 	compilerOpts = append(compilerOpts, gojq.WithIterFunction("stdout", 0, 0, i.stdout))
 	compilerOpts = append(compilerOpts, gojq.WithIterFunction("stderr", 0, 0, i.stderr))
@@ -213,6 +216,48 @@ func (i *interp) Compile(src string) (*gojq.Code, error) {
 	}
 
 	return gc, nil
+}
+
+func fileURIToPath(rawURI, goos string) (string, error) {
+	u, err := url.Parse(rawURI)
+	if err != nil {
+		return "", err
+	}
+	if u.Scheme != "file" {
+		return "", fmt.Errorf("unsupported URI scheme %q", u.Scheme)
+	}
+
+	path, err := url.PathUnescape(u.EscapedPath())
+	if err != nil {
+		return "", err
+	}
+
+	if goos == "windows" {
+		if u.Host != "" && !strings.EqualFold(u.Host, "localhost") {
+			path = "//" + u.Host + path
+		} else if len(path) >= 3 && path[0] == '/' && path[2] == ':' &&
+			((path[1] >= 'a' && path[1] <= 'z') || (path[1] >= 'A' && path[1] <= 'Z')) {
+			path = path[1:]
+		}
+		return strings.ReplaceAll(path, "/", `\`), nil
+	}
+
+	if u.Host != "" && !strings.EqualFold(u.Host, "localhost") {
+		path = "//" + u.Host + path
+	}
+	return path, nil
+}
+
+func fileURIToLocal(c any, _ []any) any {
+	rawURI, err := toString(c)
+	if err != nil {
+		return err
+	}
+	path, err := fileURIToPath(rawURI, runtime.GOOS)
+	if err != nil {
+		return err
+	}
+	return path
 }
 
 func (i *interp) readFile(c any, a []any) any {
