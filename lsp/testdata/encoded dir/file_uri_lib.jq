@@ -1,0 +1,1 @@
+def external: 42;

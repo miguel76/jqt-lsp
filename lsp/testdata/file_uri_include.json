@@ -1,0 +1,55 @@
+[
+    {
+        "request": {
+            "id": 0,
+            "jsonrpc": "2.0",
+            "method": "initialize"
+        },
+        "response": {
+            "id": 0,
+            "jsonrpc": "2.0",
+            "result": {
+                "capabilities": {
+                    "completionProvider": {},
+                    "definitionProvider": true,
+                    "documentSymbolProvider": true,
+                    "hoverProvider": true,
+                    "publishDiagnostics": {},
+                    "textDocumentSync": 1,
+                    "workspace": {
+                        "workspaceFolders": {
+                            "supported": true
+                        }
+                    }
+                },
+                "serverInfo": {
+                    "name": "jq-lsp",
+                    "version": "test-version"
+                }
+            }
+        }
+    },
+    {
+        "request": {
+            "id": 1,
+            "jsonrpc": "2.0",
+            "method": "textDocument/didOpen",
+            "params": {
+                "textDocument": {
+                    "languageId": "plaintext",
+                    "text": "@encoded dir/file_uri_include.jq",
+                    "uri": "file:///encoded%20dir/file_uri_include.jq",
+                    "version": 1
+                }
+            }
+        },
+        "response": {
+            "jsonrpc": "2.0",
+            "method": "textDocument/publishDiagnostics",
+            "params": {
+                "diagnostics": [],
+                "uri": "file:///encoded%20dir/file_uri_include.jq"
+            }
+        }
+    }
+]
