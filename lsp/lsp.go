@@ -21,6 +21,7 @@ import (
 //go:embed builtin_env.jq
 //go:embed docs.jq
 //go:embed lsp.jq
+//go:embed types.jq
 var lspFS embed.FS
 
 type loadModule struct {

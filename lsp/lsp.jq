@@ -1,5 +1,6 @@
 include "builtin_env";
 include "docs";
+include "types";
 
 def _cond(cond; f):
   if cond then
@@ -98,6 +99,11 @@ def TextFormatSnippet: 2;
 
 def CompletionItemKindFunction: 3;
 def CompletionItemKindVariable: 6;
+# LSP CompletionItemKind.Field. Not produced anywhere yet — this is
+# the constant the type-aware field-name completion described in
+# types.jq's infer_output_type doc comment will use once that's
+# wired into the textDocument/completion handler below.
+def CompletionItemKindField: 5;
 
 def TextDocumentSyncFull: 1;
 def MarkupKindsMarkdown: "markdown";
@@ -654,35 +660,54 @@ def handle($state):
                       params: {
                         uri: $doc.uri,
                         diagnostics:
-                          [ $file.query
-                          | query_walk($doc.uri; builtin_env; .term.func or .term.format) as {$env, $q}
-                          | ($q | query_token) as $token
-                          | ($q | query_args) as $args
-                          | if isempty(
-                                ( $env
-                                | env_iter_entries
-                                | .value
-                                | select(
-                                    # TODO refactor share with definition
-                                    .str == $token.str and
-                                    ( ( .args == null and $args == null) or
-                                      ( .args != null and $args != null and
-                                        (.args | length) == ($args | length)
+                          ( [ $file.query
+                            | query_walk($doc.uri; builtin_env; .term.func or .term.format) as {$env, $q}
+                            | ($q | query_token) as $token
+                            | ($q | query_args) as $args
+                            | if isempty(
+                                  ( $env
+                                  | env_iter_entries
+                                  | .value
+                                  | select(
+                                      # TODO refactor share with definition
+                                      .str == $token.str and
+                                      ( ( .args == null and $args == null) or
+                                        ( .args != null and $args != null and
+                                          (.args | length) == ($args | length)
+                                        )
                                       )
                                     )
                                   )
                                 )
-                              )
-                            then
-                              { range: {
-                                  start: ($token.start | pos_to_lc($file.line_lens)),
-                                  end: ($token.stop | pos_to_lc($file.line_lens))
+                              then
+                                { range: {
+                                    start: ($token.start | pos_to_lc($file.line_lens)),
+                                    end: ($token.stop | pos_to_lc($file.line_lens))
+                                  },
+                                  message: "\($q | func_term_name) not found",
+                                  severity: 1
+                                }
+                              else empty
+                              end
+                            ]
+                          # Type diagnostics. $input_shape is t_any (fully
+                          # ungrounded) until there's a way to attach a
+                          # JSON-Schema-derived shape to a file/workspace —
+                          # errors that don't depend on the top-level input
+                          # (literal mismatches, bad field access on a
+                          # locally-known shape, ...) still fire even so;
+                          # see the module header in types.jq.
+                          + [ $file.query
+                            | infer_diagnostics($doc.uri; builtin_env; t_any)[]
+                            | { range: {
+                                  start: (.start | pos_to_lc($file.line_lens)),
+                                  end: (.stop | pos_to_lc($file.line_lens))
                                 },
-                                message: "\($q | func_term_name) not found"
+                                message,
+                                severity
                               }
-                            else empty
-                            end
-                          ]
+                            ]
+                          )
                       }
                   } ]
               }
